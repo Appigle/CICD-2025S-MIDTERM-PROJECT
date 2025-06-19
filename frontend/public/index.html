@@ -4,9 +4,43 @@
   <head>
     <title>RollDice App</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+      .dice-display {
+        font-size: 4rem;
+        margin-bottom: 10px;
+        color: #fff;
+      }
+
+      .dice-number {
+        font-size: 2rem;
+        color: #fff;
+      }
+
+      .env-badge {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+      }
+    </style>
   </head>
 
   <body class="bg-light">
+    <!-- Environment Badge -->
+    <div class="env-badge">
+      <div class="btn-group">
+        <button class="btn btn-outline-dark" id="envDisplay"></button>
+        <button class="btn btn-outline-dark dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+          <span class="visually-hidden">Toggle Dropdown</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="?env=development">Development</a></li>
+          <li><a class="dropdown-item" href="?env=production">Production</a></li>
+        </ul>
+      </div>
+    </div>
+
     <div class="container py-5">
       <h1 class="mb-4">RollDice App</h1>
       <div class="mb-3">
@@ -15,40 +49,28 @@
         <button class="btn btn-info me-2" onclick="callApi('get_current_system_time')">Get Time</button>
         <button class="btn btn-warning me-2" onclick="callApi('get_user_info')">Get User Info</button>
         <button class="btn btn-dark me-2" onclick="callAllApis()">Show All API Responses</button>
-        <button class="btn btn-outline-secondary" id="toggle-interval-btn" onclick="toggleInterval()">Start Auto
-          Refresh</button>
       </div>
       <div id="results"></div>
     </div>
-    <script>
-      let intervalId = null;
-      function callApi(endpoint) {
-        fetch(`http://localhost:8000/api/${endpoint}`)
-          .then(res => res.json())
-          .then(data => {
-            document.getElementById('results').innerHTML = renderApiCard(endpoint, data);
-          })
-          .catch(err => {
-            document.getElementById('results').innerHTML = renderApiCard(endpoint, { error: err });
-          });
-      }
 
-      function callAllApis() {
-        const endpoints = [
-          'health_check',
-          'rolldice',
-          'get_current_system_time',
-          'get_user_info'
-        ];
-        document.getElementById('results').innerHTML = '<div class="text-muted">Loading...</div>';
-        Promise.all(endpoints.map(ep =>
-          fetch(`http://localhost:8000/api/${ep}`)
-            .then(res => res.json())
-            .then(data => ({ endpoint: ep, data }))
-            .catch(err => ({ endpoint: ep, data: { error: err } }))
-        )).then(results => {
-          document.getElementById('results').innerHTML = results.map(r => renderApiCard(r.endpoint, r.data)).join('');
-        });
+    <!-- Add Bootstrap JS for dropdown -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Load configuration -->
+    <script src="config.js"></script>
+    <script>
+      // Update environment display
+      document.getElementById('envDisplay').textContent = `Environment: ${currentEnv.toUpperCase()}`;
+
+      function getDiceIcon(number) {
+        switch (number) {
+          case 1: return '<i class="fas fa-dice-one"></i>';
+          case 2: return '<i class="fas fa-dice-two"></i>';
+          case 3: return '<i class="fas fa-dice-three"></i>';
+          case 4: return '<i class="fas fa-dice-four"></i>';
+          case 5: return '<i class="fas fa-dice-five"></i>';
+          case 6: return '<i class="fas fa-dice-six"></i>';
+          default: return '<i class="fas fa-dice"></i>';
+        }
       }
 
       function renderApiCard(endpoint, data) {
@@ -62,7 +84,15 @@
           }
         } else if (endpoint === 'rolldice') {
           title = 'Roll Dice';
-          body = `<div class='display-4 text-center'>🎲 ${data.dice}</div>`;
+          body = `
+            <div class='text-center d-flex flex-row justify-content-center align-items-center'>
+              <span class="dice-display">
+                ${getDiceIcon(data.dice)}
+              </span>
+              <span class="dice-number ms-4">
+                You rolled a ${data.dice}
+              </span>
+            </div>`;
         } else if (endpoint === 'get_current_system_time') {
           title = 'Current System Time';
           body = `<div class='lead'>${data.time}</div>`;
@@ -90,24 +120,36 @@
         `;
       }
 
-      function toggleInterval() {
-        const btn = document.getElementById('toggle-interval-btn');
-        if (intervalId === null) {
-          callAllApis(); // Call immediately
-          intervalId = setInterval(callAllApis, 1000);
-          btn.textContent = 'Stop Auto Refresh';
-          btn.classList.remove('btn-outline-secondary');
-          btn.classList.add('btn-danger');
-        } else {
-          clearInterval(intervalId);
-          intervalId = null;
-          btn.textContent = 'Start Auto Refresh';
-          btn.classList.remove('btn-danger');
-          btn.classList.add('btn-outline-secondary');
-        }
+      function callApi(endpoint) {
+        fetch(`${currentConfig.apiBaseUrl}/${endpoint}`)
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('results').innerHTML = renderApiCard(endpoint, data);
+          })
+          .catch(err => {
+            document.getElementById('results').innerHTML = renderApiCard(endpoint, { error: err });
+          });
       }
 
-      // Optionally, call health check on load
+      function callAllApis() {
+        const endpoints = [
+          'health_check',
+          'rolldice',
+          'get_current_system_time',
+          'get_user_info'
+        ];
+        document.getElementById('results').innerHTML = '<div class="text-muted">Loading...</div>';
+        Promise.all(endpoints.map(ep =>
+          fetch(`${currentConfig.apiBaseUrl}/${ep}`)
+            .then(res => res.json())
+            .then(data => ({ endpoint: ep, data }))
+            .catch(err => ({ endpoint: ep, data: { error: err } }))
+        )).then(results => {
+          document.getElementById('results').innerHTML = results.map(r => renderApiCard(r.endpoint, r.data)).join('');
+        });
+      }
+
+      // Call all APIs on load
       callAllApis();
     </script>
   </body>
