@@ -1,0 +1,29 @@
+# Composer dependencies
+/backend/vendor/
+
+# PHPUnit cache and logs
+/backend/.phpunit.result.cache
+
+# Node dependencies
+/frontend/node_modules/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+
+# Log files
+*.log
+
+# Environment files
+/backend/.env
+
+# Misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log* 
+steps.md

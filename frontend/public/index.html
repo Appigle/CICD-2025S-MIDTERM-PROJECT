@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>RollDice App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+
+  <body class="bg-light">
+    <div class="container py-5">
+      <h1 class="mb-4">RollDice App</h1>
+      <div class="mb-3">
+        <button class="btn btn-primary me-2" onclick="callApi('health_check')">Health Check</button>
+        <button class="btn btn-success me-2" onclick="callApi('rolldice')">Roll Dice</button>
+        <button class="btn btn-info me-2" onclick="callApi('get_current_system_time')">Get Time</button>
+        <button class="btn btn-warning" onclick="callApi('get_user_info')">Get User Info</button>
+      </div>
+      <div class="card">
+        <div class="card-header">Result</div>
+        <div id="result" class="card-body bg-dark text-white"></div>
+      </div>
+    </div>
+    <script>
+      function callApi(endpoint) {
+        fetch(`http://localhost:8000/api/${endpoint}`)
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('result').innerHTML = renderApiResult(endpoint, data);
+          })
+          .catch(err => {
+            document.getElementById('result').textContent = 'Error: ' + err;
+          });
+      }
+
+      function renderApiResult(endpoint, data) {
+        if (endpoint === 'health_check') {
+          return `<div class='alert alert-success'>Status: <strong>${data.status}</strong></div>`;
+        } else if (endpoint === 'rolldice') {
+          return `<div class='display-4 text-center'>🎲 ${data.dice}</div>`;
+        } else if (endpoint === 'get_current_system_time') {
+          return `<div class='h5'>Current System Time:</div><div class='lead'>${data.time}</div>`;
+        } else if (endpoint === 'get_user_info') {
+          return `
+            <table class='table table-dark table-striped'>
+              <tr><th>User ID</th><td>${data.user_id}</td></tr>
+              <tr><th>First Name</th><td>${data.first_name}</td></tr>
+              <tr><th>Age</th><td>${data.age}</td></tr>
+            </table>
+          `;
+        } else if (data.error) {
+          return `<div class='alert alert-danger'>${data.error}</div>`;
+        } else {
+          return `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+      }
+
+      callApi('health_check');
+    </script>
+  </body>
+
+</html>
