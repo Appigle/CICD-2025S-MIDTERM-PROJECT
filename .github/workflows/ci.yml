@@ -54,8 +54,30 @@ jobs:
       - name: Run PHPStan
         run: composer analyze
 
+      - name: Start PHP Server
+        run: php -S localhost:8000 -t public &
+        working-directory: ./backend
+
+      - name: Wait for server
+        run: |
+          timeout=30
+          until curl -s http://localhost:8000/api/health_check > /dev/null 2>&1; do
+            if [ $timeout -le 0 ]; then
+              echo "Timeout waiting for PHP server"
+              exit 1
+            fi
+            echo "Waiting for PHP server... ($timeout seconds left)"
+            timeout=$((timeout-1))
+            sleep 1
+          done
+
       - name: Run test suite
         run: composer test
+
+      - name: Stop PHP Server
+        if: always()
+        run: |
+          pkill -f "php -S localhost:8000" || true
 
   docker-build:
     needs: backend-tests
