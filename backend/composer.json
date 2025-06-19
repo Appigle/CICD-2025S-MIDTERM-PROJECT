@@ -24,9 +24,12 @@
     }
   },
   "scripts": {
-    "test": "phpunit",
+    "test": "./vendor/bin/phpunit --colors=always --testdox tests/ApiTest.php",
     "lint": "phpcs",
     "lint:fix": "phpcbf",
     "analyze": "phpstan analyse"
+  },
+  "config": {
+    "process-timeout": 0
   }
 }

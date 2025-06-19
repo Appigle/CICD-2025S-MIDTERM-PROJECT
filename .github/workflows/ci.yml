@@ -55,7 +55,9 @@ jobs:
         run: composer analyze
 
       - name: Start PHP Server
-        run: php -S localhost:8000 -t public &
+        run: |
+          # Disable JIT to avoid warnings
+          php -d opcache.jit=0 -S localhost:8000 -t public > /dev/null 2>&1 &
         working-directory: ./backend
 
       - name: Wait for server
@@ -72,7 +74,10 @@ jobs:
           done
 
       - name: Run test suite
-        run: composer test
+        run: |
+          # Run PHPUnit with proper configuration
+          ./vendor/bin/phpunit --colors=always --testdox tests/ApiTest.php
+        working-directory: ./backend
 
       - name: Stop PHP Server
         if: always()
