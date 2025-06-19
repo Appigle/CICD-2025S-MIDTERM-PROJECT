@@ -1,0 +1,12 @@
+parameters:
+    # Level 5 is the highest level
+    level: 5
+    paths:
+        - public
+        - tests
+    excludePaths:
+        - vendor
+    # Ignore return type hints for tests
+    ignoreErrors:
+        - '#PHPUnit\\Framework\\TestCase::#'
+    reportUnmatchedIgnoredErrors: false

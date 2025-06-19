@@ -13,34 +13,62 @@
         <button class="btn btn-primary me-2" onclick="callApi('health_check')">Health Check</button>
         <button class="btn btn-success me-2" onclick="callApi('rolldice')">Roll Dice</button>
         <button class="btn btn-info me-2" onclick="callApi('get_current_system_time')">Get Time</button>
-        <button class="btn btn-warning" onclick="callApi('get_user_info')">Get User Info</button>
+        <button class="btn btn-warning me-2" onclick="callApi('get_user_info')">Get User Info</button>
+        <button class="btn btn-dark me-2" onclick="callAllApis()">Show All API Responses</button>
+        <button class="btn btn-outline-secondary" id="toggle-interval-btn" onclick="toggleInterval()">Start Auto
+          Refresh</button>
       </div>
-      <div class="card">
-        <div class="card-header">Result</div>
-        <div id="result" class="card-body bg-dark text-white"></div>
-      </div>
+      <div id="results"></div>
     </div>
     <script>
+      let intervalId = null;
       function callApi(endpoint) {
         fetch(`http://localhost:8000/api/${endpoint}`)
           .then(res => res.json())
           .then(data => {
-            document.getElementById('result').innerHTML = renderApiResult(endpoint, data);
+            document.getElementById('results').innerHTML = renderApiCard(endpoint, data);
           })
           .catch(err => {
-            document.getElementById('result').textContent = 'Error: ' + err;
+            document.getElementById('results').innerHTML = renderApiCard(endpoint, { error: err });
           });
       }
 
-      function renderApiResult(endpoint, data) {
+      function callAllApis() {
+        const endpoints = [
+          'health_check',
+          'rolldice',
+          'get_current_system_time',
+          'get_user_info'
+        ];
+        document.getElementById('results').innerHTML = '<div class="text-muted">Loading...</div>';
+        Promise.all(endpoints.map(ep =>
+          fetch(`http://localhost:8000/api/${ep}`)
+            .then(res => res.json())
+            .then(data => ({ endpoint: ep, data }))
+            .catch(err => ({ endpoint: ep, data: { error: err } }))
+        )).then(results => {
+          document.getElementById('results').innerHTML = results.map(r => renderApiCard(r.endpoint, r.data)).join('');
+        });
+      }
+
+      function renderApiCard(endpoint, data) {
+        let title = '';
+        let body = '';
         if (endpoint === 'health_check') {
-          return `<div class='alert alert-success'>Status: <strong>${data.status}</strong></div>`;
+          title = 'Health Check';
+          body = `<div class='alert alert-success'>Status: <strong>${data.status}</strong></div>`;
+          if (data.env_name || data.operation_user) {
+            body += `<div class='mt-2'><span class='badge bg-info text-dark'>ENV: ${data.env_name || ''}</span> <span class='badge bg-secondary'>User: ${data.operation_user || ''}</span></div>`;
+          }
         } else if (endpoint === 'rolldice') {
-          return `<div class='display-4 text-center'>🎲 ${data.dice}</div>`;
+          title = 'Roll Dice';
+          body = `<div class='display-4 text-center'>🎲 ${data.dice}</div>`;
         } else if (endpoint === 'get_current_system_time') {
-          return `<div class='h5'>Current System Time:</div><div class='lead'>${data.time}</div>`;
+          title = 'Current System Time';
+          body = `<div class='lead'>${data.time}</div>`;
         } else if (endpoint === 'get_user_info') {
-          return `
+          title = 'User Info';
+          body = `
             <table class='table table-dark table-striped'>
               <tr><th>User ID</th><td>${data.user_id}</td></tr>
               <tr><th>First Name</th><td>${data.first_name}</td></tr>
@@ -48,13 +76,39 @@
             </table>
           `;
         } else if (data.error) {
-          return `<div class='alert alert-danger'>${data.error}</div>`;
+          title = endpoint;
+          body = `<div class='alert alert-danger'>${data.error}</div>`;
         } else {
-          return `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          title = endpoint;
+          body = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+        return `
+          <div class="card my-3">
+            <div class="card-header fw-bold">${title}</div>
+            <div class="card-body bg-dark text-white">${body}</div>
+          </div>
+        `;
+      }
+
+      function toggleInterval() {
+        const btn = document.getElementById('toggle-interval-btn');
+        if (intervalId === null) {
+          callAllApis(); // Call immediately
+          intervalId = setInterval(callAllApis, 1000);
+          btn.textContent = 'Stop Auto Refresh';
+          btn.classList.remove('btn-outline-secondary');
+          btn.classList.add('btn-danger');
+        } else {
+          clearInterval(intervalId);
+          intervalId = null;
+          btn.textContent = 'Start Auto Refresh';
+          btn.classList.remove('btn-danger');
+          btn.classList.add('btn-outline-secondary');
         }
       }
 
-      callApi('health_check');
+      // Optionally, call health check on load
+      callAllApis();
     </script>
   </body>
 
